@@ -76,6 +76,7 @@ pub fn rms_norm(y: &mut Tensor<f32>, x: &Tensor<f32>, w: &Tensor<f32>, epsilon: 
 
 // y = silu(x) * y
 // hint: this is an element-wise operation
+// todo 实现 silu 函数
 pub fn swiglu(y: &mut Tensor<f32>, x: &Tensor<f32>) {
     // let len = y.size();
     // assert!(len == x.size());
