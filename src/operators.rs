@@ -78,15 +78,19 @@ pub fn rms_norm(y: &mut Tensor<f32>, x: &Tensor<f32>, w: &Tensor<f32>, epsilon: 
 // hint: this is an element-wise operation
 // todo 实现 silu 函数
 pub fn swiglu(y: &mut Tensor<f32>, x: &Tensor<f32>) {
-    // let len = y.size();
-    // assert!(len == x.size());
+    let len = y.size();
+    assert!(len == x.size());
 
-    // let _y = unsafe { y.data_mut() };
-    // let _x = x.data();
-
-    todo!("实现 silu，这里给了一些前期准备工作的提示，你可以参考")
+    let y = unsafe { y.data_mut() };
+    let x = x.data();
+    for i in 0..len {
+        y[i] *= sigmoid(x[i]) * x[i];
+    }
 }
-
+// 这里是一个 sigmoid 函数的实现
+fn sigmoid(x: f32) -> f32 {
+    1.0 / (1.0 + (-x).exp())
+}
 // C = beta * C + alpha * A @ B^T
 // hint: You don't need to do an explicit transpose of B
 pub fn matmul_transb(c: &mut Tensor<f32>, beta: f32, a: &Tensor<f32>, b: &Tensor<f32>, alpha: f32) {
