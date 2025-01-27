@@ -156,8 +156,7 @@ fn self_attention(
 ) {
     todo!("Implement self_attention");
 }
-/// mlp是什么
-/// 
+/// mlp是什么 前反馈神经网络
 fn mlp(
     residual: &mut Tensor<f32>,
     hidden_states: &mut Tensor<f32>,
