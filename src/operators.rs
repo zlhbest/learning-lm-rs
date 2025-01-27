@@ -83,6 +83,7 @@ pub fn rms_norm(y: &mut Tensor<f32>, x: &Tensor<f32>, w: &Tensor<f32>, epsilon: 
     // 进行计算，这里仿照的print
     let dim = y.shape()[y.shape().len() - 1];
     let batch = y.data().len() / dim;
+    let data = unsafe { y.data_mut() };
     // 有几批数据
     for i in 0..batch {
         let start = i * dim;
@@ -93,9 +94,7 @@ pub fn rms_norm(y: &mut Tensor<f32>, x: &Tensor<f32>, w: &Tensor<f32>, epsilon: 
         }
         let mean = sum / dim as f32;
         for j in start..end {
-            unsafe {
-                y.data_mut()[j] = (x.data()[j] * w.data()[j - start]) / (mean + epsilon).sqrt()
-            };
+            data[j] = (x.data()[j] * w.data()[j - start]) / (mean + epsilon).sqrt()
         }
     }
 }
@@ -122,27 +121,29 @@ fn sigmoid(x: f32) -> f32 {
 pub fn matmul_transb(c: &mut Tensor<f32>, beta: f32, a: &Tensor<f32>, b: &Tensor<f32>, alpha: f32) {
     // 实现矩阵乘法
     // a与b的转置能够相乘，那就需要a和b的shape是一样的
-    assert!(a.shape() == b.shape());
     assert!(a.shape().len() == 2);
     assert!(b.shape().len() == 2);
     // 检验c的shape是否正确
     assert!(c.shape()[0] == a.shape()[0]);
     assert!(c.shape()[1] == b.shape()[0]);
     // 求a乘b的转置
-    let dim_a = a.shape()[a.shape().len() - 1];
-    let batch = a.size() / dim_a;
-    for i in 0..batch {
+    let dim_a = a.shape()[1];
+    let batch_a = a.size() / dim_a;
+    let dim_b = b.shape()[1];
+    let batch_b = b.size() / dim_b;
+    let data_c = unsafe { c.data_mut() };
+    for i in 0..batch_a {
         let start_a = i * dim_a;
         let end_a = start_a + dim_a;
         // 获取到a的数据
-        for k in 0..batch {
+        for k in 0..batch_b {
             let mut sum = 0.0;
             for j in start_a..end_a {
-                sum += a.data()[j] * b.data()[j - start_a + k * dim_a];
+                sum += a.data()[j] * b.data()[j - start_a + k * dim_b];
             }
-            unsafe {
-                c.data_mut()[2 * i + k] = c.data()[2 * i + k] * beta + sum * alpha;
-            }
+
+            let index = batch_b * i + k;
+            data_c[index] = data_c[index] * beta + sum * alpha;
         }
     }
 }
