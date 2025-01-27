@@ -69,14 +69,38 @@ pub fn masked_softmax(y: &mut Tensor<f32>) {
         }
     }
 }
-
+/// 层归一化
+/// 可以提升训练的效果，提高模型计算的稳定性
 pub fn rms_norm(y: &mut Tensor<f32>, x: &Tensor<f32>, w: &Tensor<f32>, epsilon: f32) {
-    todo!("实现 rms_norm，计算前做一些必要的检查会帮助你后续调试")
+    // 判断w 的维度是否是一维
+    assert!(w.shape().len() == 1);
+    // 判断w 的长度是否等于 x 的最后一个维度
+    assert!(w.size() == x.shape()[x.shape().len() - 1]);
+    // 判断 y 的维度是否等于 x 的维度,都是二维
+    assert!(y.shape().len() == x.shape().len());
+    assert!(x.shape().len() == 2);
+    // 进行计算，这里仿照的print
+    let dim = y.shape()[y.shape().len() - 1];
+    let batch = y.data().len() / dim;
+    for i in 0..batch {
+        let start = i * dim;
+        let end = start + dim;
+        let mut sum = 0.0;
+        for j in start..end {
+            sum += x.data()[j] * x.data()[j];
+        }
+        let mean = sum / dim as f32;
+        for j in start..end {
+            unsafe {
+                y.data_mut()[j] = (x.data()[j] * w.data()[j - start]) / (mean + epsilon).sqrt()
+            };
+        }
+    }
 }
 
 // y = silu(x) * y
 // hint: this is an element-wise operation
-// todo 实现 silu 函数
+// 实现 silu 函数 (SiLU(x) = x * sigmoid(x))  非线性激活函数
 pub fn swiglu(y: &mut Tensor<f32>, x: &Tensor<f32>) {
     let len = y.size();
     assert!(len == x.size());
@@ -194,6 +218,7 @@ fn test_rms_norm() {
     let x = Tensor::<f32>::new(vec![1., 2., 3., 4.], &vec![2, 2]);
     let w = Tensor::<f32>::new(vec![1., 2.], &vec![2]);
     rms_norm(&mut y, &x, &w, 1e-6);
+    y.print();
     assert!(y.close_to(
         &Tensor::<f32>::new(
             vec![0.6324554, 2.5298216, 0.8485281, 2.2627416],
