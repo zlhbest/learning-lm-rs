@@ -44,6 +44,7 @@ pub fn masked_softmax(y: &mut Tensor<f32>) {
     assert!(ndim >= 2);
     let seq_len = y.shape()[ndim - 2];
     let total_seq_len = y.shape()[ndim - 1];
+    // 这里不就是1,还能是别的嘛？
     let batch = y.size() / (seq_len * total_seq_len);
     let data = unsafe { y.data_mut() };
     for b in 0..batch {
@@ -82,6 +83,7 @@ pub fn rms_norm(y: &mut Tensor<f32>, x: &Tensor<f32>, w: &Tensor<f32>, epsilon: 
     // 进行计算，这里仿照的print
     let dim = y.shape()[y.shape().len() - 1];
     let batch = y.data().len() / dim;
+    // 有几批数据
     for i in 0..batch {
         let start = i * dim;
         let end = start + dim;
@@ -118,7 +120,31 @@ fn sigmoid(x: f32) -> f32 {
 // C = beta * C + alpha * A @ B^T
 // hint: You don't need to do an explicit transpose of B
 pub fn matmul_transb(c: &mut Tensor<f32>, beta: f32, a: &Tensor<f32>, b: &Tensor<f32>, alpha: f32) {
-    todo!("实现 matmul_transb，计算前做一些必要的检查会帮助你后续调试");
+    // 实现矩阵乘法
+    // a与b的转置能够相乘，那就需要a和b的shape是一样的
+    assert!(a.shape() == b.shape());
+    assert!(a.shape().len() == 2);
+    assert!(b.shape().len() == 2);
+    // 检验c的shape是否正确
+    assert!(c.shape()[0] == a.shape()[0]);
+    assert!(c.shape()[1] == b.shape()[0]);
+    // 求a乘b的转置
+    let dim_a = a.shape()[a.shape().len() - 1];
+    let batch = a.size() / dim_a;
+    for i in 0..batch {
+        let start_a = i * dim_a;
+        let end_a = start_a + dim_a;
+        // 获取到a的数据
+        for k in 0..batch {
+            let mut sum = 0.0;
+            for j in start_a..end_a {
+                sum += a.data()[j] * b.data()[j - start_a + k * dim_a];
+            }
+            unsafe {
+                c.data_mut()[2 * i + k] = c.data()[2 * i + k] * beta + sum * alpha;
+            }
+        }
+    }
 }
 
 // Dot product of two tensors (treated as vectors)
@@ -232,7 +258,7 @@ fn test_rms_norm() {
 fn test_matmul_transb() {
     let mut c = Tensor::<f32>::new(vec![1., 2., 3., 4.], &vec![2, 2]);
     let a = Tensor::<f32>::new(vec![1., 2., 3., 4., 5., 6.], &vec![2, 3]);
-    let b = Tensor::<f32>::new(vec![1., 2., 3., 4., 5., 6.], &vec![2, 3]);
+    let mut b = Tensor::<f32>::new(vec![1., 2., 3., 4., 5., 6.], &vec![2, 3]);
     matmul_transb(&mut c, 1., &a, &b, 1.);
     assert!(c.close_to(
         &Tensor::<f32>::new(vec![15., 34., 35., 81.], &vec![2, 2]),

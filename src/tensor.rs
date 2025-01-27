@@ -83,7 +83,7 @@ impl Tensor<f32> {
             "shpae: {:?}, offset: {}, length: {}",
             self.shape, self.offset, self.length
         );
-        // 从这里可以看出来，最后一个维度是最内层的维度
+        // 从这里可以看出来，最后一个维度是最内部的维度
         let dim = self.shape()[self.shape().len() - 1];
         // 根据长度和维度，可以计算出batch的数量
         let batch = self.length / dim;
