@@ -78,8 +78,8 @@ pub fn rms_norm(y: &mut Tensor<f32>, x: &Tensor<f32>, w: &Tensor<f32>, epsilon: 
     // 判断w 的长度是否等于 x 的最后一个维度
     assert!(w.size() == x.shape()[x.shape().len() - 1]);
     // 判断 y 的维度是否等于 x 的维度,都是二维
-    assert!(y.shape().len() == x.shape().len());
-    assert!(x.shape().len() == 2);
+    // assert!(y.shape().len() == x.shape().len());
+    // assert!(x.shape().len() == 2);
     // 进行计算，这里仿照的print
     let dim = y.shape()[y.shape().len() - 1];
     let batch = y.data().len() / dim;
@@ -121,7 +121,7 @@ fn sigmoid(x: f32) -> f32 {
 pub fn matmul_transb(c: &mut Tensor<f32>, beta: f32, a: &Tensor<f32>, b: &Tensor<f32>, alpha: f32) {
     // 实现矩阵乘法
     // a与b的转置能够相乘，那就需要a和b的shape是一样的
-    assert!(a.shape().len() == 2);
+    assert!(a.shape().len() >= 2);
     assert!(b.shape().len() == 2);
     // 检验c的shape是否正确
     assert!(c.shape()[0] == a.shape()[0]);
@@ -146,6 +146,30 @@ pub fn matmul_transb(c: &mut Tensor<f32>, beta: f32, a: &Tensor<f32>, b: &Tensor
             data_c[index] = data_c[index] * beta + sum * alpha;
         }
     }
+}
+// 将一个tensor的最后两个维度转置
+pub fn transpose_last_2d(x: &Tensor<f32>) -> Tensor<f32> {
+    let mut shape = x.shape().clone();
+    assert!(shape.len() >= 2);
+    let length = x.shape().len();
+    let dim0 = shape[length - 2];
+    let dim1 = shape[length - 1];
+
+    shape[length - 2] = dim1;
+    shape[length - 1] = dim0;
+
+    let data_x = x.data();
+    let mut data = Vec::with_capacity(data_x.len());
+    // 进行分组，分组后转置
+    for chunk in data_x.chunks(dim0 * dim1) {
+        for i in 0..dim1 {
+            for j in 0..dim0 {
+                data.push(chunk[j * dim1 + i]);
+            }
+        }
+    }
+
+    Tensor::new(data, &shape)
 }
 
 // Dot product of two tensors (treated as vectors)
