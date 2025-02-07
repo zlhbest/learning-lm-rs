@@ -47,7 +47,7 @@ impl LLamaParams<f32> {
         if config.tie_word_embeddings {
             embedding_table = Tensor::new(lm_head.data().to_vec(), lm_head.shape());
         } else {
-            embedding_table = Tensor::default(lm_head.shape());
+            embedding_table = get_tensor("model.embed_tokens.weight");
         }
         Self {
             embedding_table,

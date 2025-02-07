@@ -1,13 +1,14 @@
-use std::fs::File;
-use std::vec;
-
 use crate::config::LlamaConfigJson;
 use crate::kvcache::KVCache;
 use crate::operators::{self as OP, matmul_transb, rms_norm, swiglu};
 use crate::params::LLamaParams;
 use crate::tensor::Tensor;
 use safetensors::SafeTensors;
+use std::fs::File;
 use std::path::Path;
+
+use std::vec;
+
 pub struct Llama<T> {
     vocab: usize,           // vocab size
     n_layers: usize,        // number of layers
@@ -73,7 +74,9 @@ impl Llama<f32> {
         // Computation Starts Here
         // Embedding Lookup
         // input 与词嵌入矩阵相乘得到残差
+
         OP::gather(&mut residual, input, &self.params.embedding_table);
+
         // 这里就可以理解为 一个输入的token id 通过embedding table 得到一个残差，这个残差是128维的
         // 只看第一层
         for layer in 0..self.n_layers {
@@ -84,6 +87,7 @@ impl Llama<f32> {
                 &self.params.rms_att_w[layer], // 128
                 self.eps,
             );
+
             // q 是序列长度 , n_q_h * dqkv n_q_h 是q头的数量 dqkv是q头的长度
             let q = (&mut q_buf).reshape(&vec![seq_len, self.n_q_h * self.dqkv]); // (seq, n_h * dqkv)
             let k = &mut cache.k_cache(layer, past_seq_len); // (seq, n_kv_h * dqkv)
@@ -184,12 +188,40 @@ impl Llama<f32> {
         // 创建一个缓存
         let mut cache = self.new_cache();
         // shape的阶数是1 那么就是一个向量
-        let mut input = Tensor::new(token_ids.to_vec(), &vec![result.len()]);
+        let mut input = Tensor::new(token_ids.to_vec(), &vec![token_ids.len()]);
         while result.len() < max_len {
             // 将input转换为tensor 每一次的输入都带着上一次的输出
             let logits = self.forward(&input, &mut cache);
             // 选取一个合适的token id
             let token_id = OP::random_sample(&logits, top_p, top_k, temperature);
+            result.push(token_id);
+            // 如果是结束符号，停止生成
+            if token_id == self.eos_token_id {
+                break;
+            }
+            input = Tensor::new(vec![token_id], &vec![1]);
+        }
+        result
+    }
+
+    pub fn chat<F: Fn(u32) -> ()>(
+        &self,
+        kv_cache: &mut KVCache<f32>,
+        token_ids: &[u32],
+        top_p: f32,
+        top_k: u32,
+        temperature: f32,
+        output: F,
+    ) -> Vec<u32> {
+        // shape的阶数是1 那么就是一个向量
+        let mut input = Tensor::new(token_ids.to_vec(), &vec![token_ids.len()]);
+        let mut result = Vec::<u32>::new();
+        loop {
+            // 将input转换为tensor 每一次的输入都带着上一次的输出
+            let logits = self.forward(&input, kv_cache);
+            // 选取一个合适的token id
+            let token_id = OP::random_sample(&logits, top_p, top_k, temperature);
+            output(token_id);
             result.push(token_id);
             // 如果是结束符号，停止生成
             if token_id == self.eos_token_id {

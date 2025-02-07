@@ -1,6 +1,6 @@
 from transformers import LlamaForCausalLM, AutoConfig, AutoTokenizer
 
-model_dir = "./models/story"
+model_dir = "./models/chat"
 tokenizer = AutoTokenizer.from_pretrained(model_dir)
 token_ids = tokenizer.encode("Once upon a time")
 tokens = tokenizer.convert_ids_to_tokens(token_ids)
