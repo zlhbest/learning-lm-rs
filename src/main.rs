@@ -66,7 +66,7 @@ fn main() {
                 // 这里想做成生成一个词就输出一个词
                 //print!("{} ", tokenizer_copy.decode(&vec![token], true).unwrap())
             });
-            print!(" AI: {} ", tokenizer.decode(&result, true).unwrap());
+            print!("AI: {} ", tokenizer.decode(&result, true).unwrap());
             println!();
         }
     }
