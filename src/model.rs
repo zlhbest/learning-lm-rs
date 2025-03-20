@@ -212,24 +212,21 @@ impl Llama<f32> {
         top_k: u32,
         temperature: f32,
         output: F,
-    ) -> Vec<u32> {
+    ) {
         // shape的阶数是1 那么就是一个向量
         let mut input = Tensor::new(token_ids.to_vec(), &vec![token_ids.len()]);
-        let mut result = Vec::<u32>::new();
         loop {
             // 将input转换为tensor 每一次的输入都带着上一次的输出
             let logits = self.forward(&input, kv_cache);
             // 选取一个合适的token id
             let token_id = OP::random_sample(&logits, top_p, top_k, temperature);
             output(token_id);
-            result.push(token_id);
             // 如果是结束符号，停止生成
             if token_id == self.eos_token_id {
                 break;
             }
             input = Tensor::new(vec![token_id], &vec![1]);
         }
-        result
     }
 }
 /// 自注意力层

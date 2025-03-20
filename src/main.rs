@@ -7,7 +7,7 @@ mod tensor;
 
 use minijinja::{context, Environment};
 use serde_json::Value;
-use std::{fs::File, path::PathBuf, rc::Rc};
+use std::{fs::File, io::Write, path::PathBuf, rc::Rc};
 use tokenizers::Tokenizer;
 
 fn main() {
@@ -43,7 +43,7 @@ fn main() {
         )
         .unwrap();
         loop {
-            println!("please input:");
+            println!("user input:");
             let mut chat_input = String::new();
             std::io::stdin().read_line(&mut chat_input).unwrap();
             let tmp = env.get_template("chat_template").unwrap();
@@ -61,12 +61,14 @@ fn main() {
             let binding = tokenizer.encode(input_real_value, true).unwrap();
             // 通过Jinja2模板引擎，将输入的文本转换成token id
             let input_ids = binding.get_ids();
-            //let tokenizer_copy = tokenizer.clone();
-            let result = llama.chat(&mut kv_cache, input_ids, 0.8, 30, 1., |_token| {
+            let tokenizer_copy = tokenizer.clone();
+            println!("AI: ");
+            llama.chat(&mut kv_cache, input_ids, 0.8, 30, 1., |token| {
                 // 这里想做成生成一个词就输出一个词
-                //print!("{} ", tokenizer_copy.decode(&vec![token], true).unwrap())
+                print!("{} ", tokenizer_copy.decode(&vec![token], true).unwrap());
+                //  将控制台输出清空，防止缓存一次性输出
+                std::io::stdout().flush().unwrap();
             });
-            print!("AI: {} ", tokenizer.decode(&result, true).unwrap());
             println!();
         }
     }
